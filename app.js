@@ -45,7 +45,7 @@ server.listen(3003);
 
 var PublicMessage = require('./models/Message.js');
 var Group= require('./models/Group.js');
-
+var GroupMessage=require('./models/GroupMessage.js')
 
 
 
@@ -56,7 +56,6 @@ var groupSchema=mongoose.Schema({
     created:{type:Date,default:Date.now}
 })
 
-var GroupMessage=mongoose.model('GroupMessage',groupSchema);
 
 
 io.sockets.on('connection',function (socket) {
@@ -99,6 +98,7 @@ io.sockets.on('connection',function (socket) {
             onlineUsers[socket.username]=socket;
             updateNickNames();
             loadOldGroups();
+            loadOldGroupMessages();
 
         }
 
@@ -197,21 +197,11 @@ io.sockets.on('connection',function (socket) {
     socket.on('send group message',function (data,callback) {
 
 
-
-
-
         var ind=data.indexOf(' ');
         var msg=data.substring(0,ind);
         //boşluğun başladığı yerden sonuna kadar olan yer
-        var groupName1 =data.substring(ind+2);
-
-
-
-
-
-
-
-        var groupMessage=new GroupMessage ({groupName:groupName1,groupSubscriber:socket.username,groupMsg:msg});
+        var roomName1 =data.substring(ind+2);
+        var groupMessage=new GroupMessage ({roomname:roomName1,roomUsername:socket.username,message:msg});
 
 
         groupMessage.save(function (err) {
@@ -221,7 +211,7 @@ io.sockets.on('connection',function (socket) {
 
             // io.sockets.emit('new message', {msg: msg, nick: socket.nickname});
 
-            io.sockets.emit('new group message', {groupName:groupName1,groupSubscriber:socket.username,groupMsg:msg});
+            io.sockets.emit('new group message', {roomname:roomName1,roomUsername:socket.username,message:msg});
 
 
         });
@@ -232,7 +222,7 @@ io.sockets.on('connection',function (socket) {
 
 
 
-    })
+    });
     socket.on('create group',function (data,callback) {
 
 
@@ -240,11 +230,11 @@ io.sockets.on('connection',function (socket) {
         //boşluğun başladığı yerden sonuna kadar olan yer
         var GroupCreaterUsername =socket.username;
 
-        Group.findOne({roomname: RoomName,GroupCreaterUsername: GroupCreaterUsername},function (err,result) {
+        Group.findOne({roomname: RoomName},function (err,result) {
             if (err) throw err;
             if(result){
 
-                    io.sockets.emit('group name already taken');
+                    socket.emit('group name already taken');
 
 
             }
@@ -318,6 +308,30 @@ io.sockets.on('connection',function (socket) {
             }
 
 
+        });
+
+
+
+    }
+
+
+    function loadOldGroupMessages(){
+        //burada mesajları zamana göre sıralayabilirsin
+
+
+
+
+        var query=GroupMessage.find();
+        query.sort('-updated_at').limit(5).exec(function (err,GroupMessages) {
+            if(err) throw err;
+            if (GroupMessage.length!=0){
+                socket.emit("load old group messages",GroupMessages);
+                }
+            else if(GroupMessages.length==0)
+            {
+                console.log("Old Group Messages none");
+
+            }
         });
 
 

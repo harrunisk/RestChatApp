@@ -15,7 +15,7 @@ jQuery(function($) {
 
 
 
-    var $createGroup=$('#createGroup');
+    var $createGroupButton=$('#createGroup');
     var $groupName=$('#groupName');
     var username;
 
@@ -46,17 +46,18 @@ jQuery(function($) {
 
 
 
-    $createGroup.click(function (e) {
+    $createGroupButton.click(function (e) {
         e.preventDefault();
 
+        if($groupName.val()=="")
+        {alert("Pick a room name!")}
 
-        socket.emit('create group',$groupName.val(),function(data){
-            //üstteki satıra functionu callbak için ekledik
-            //add stuff later
+        else
+        {
 
-        });
-        $groupName.val('');
-
+            socket.emit('create group', $groupName.val());
+            $groupName.val('');
+        }
 
 
     });
@@ -84,8 +85,7 @@ jQuery(function($) {
     socket.on('group name already taken',function () {
 
 
-    console.log("gurup ismi alınmış");
-
+alert("Room Name Already Take Pick Another Room Name")
 
 });
     socket.on('new group created',function(data){
@@ -138,6 +138,15 @@ jQuery(function($) {
 
 
 
+
+    });
+    socket.on('load old group messages',function (data) {
+
+        for(var i=data.length-1;i>=0;i--){
+            loadOldGroupMessages(data[i]);
+
+
+        }
 
     });
 
@@ -202,6 +211,9 @@ jQuery(function($) {
         $messageArea.val('');
 
     });
+
+    //sending group(room) message
+    //grup mesajı
     $('#groupPlace').on('click','.sendGroupMessage',function(e){
 
         e.preventDefault();
@@ -237,7 +249,6 @@ jQuery(function($) {
 
 
 
-        alert( messageValue+ groupName);
 
 
 
@@ -249,6 +260,34 @@ jQuery(function($) {
 
 
     });
+
+
+    //alınan mesajları burada yazdır
+    //write to the screen received messages
+    socket.on('new group message',function (data) {
+        var html = '';
+
+
+
+
+        var message='';
+        message+='<div class="media msg">'
+        message+='<a class="pull-left" href="#">'
+        message+='</a>'
+        message+='<div class="media-body">'
+        message+='<h5 class="media-heading">'+data.roomUsername+'</h5>\n'
+        //message+=' <small class="pull-right time"><i class="fa fa-clock-o"></i>'+data.updated_at+' </small>\n'
+        message+=' <small class="col-lg-10">'+data.message+'</small>\n'
+        message+='</div><br>'
+        var $groupMessageArea=$('#'+data.roomname);
+        $groupMessageArea.append(message);
+
+
+
+
+    })
+
+
     socket.on('load old msgs',function (docs) {
         for(var i=docs.length-1; i>=0 ; i--){
             displayMsg(docs[i]);
@@ -261,6 +300,31 @@ jQuery(function($) {
         displayMsg(data);
 
     });
+
+
+    function loadOldGroupMessages(data) {
+
+        var html = '';
+
+
+
+
+        var message='';
+        message+='<div class="media msg">'
+        message+='<a class="pull-left" href="#">'
+        message+='</a>'
+        message+='<div class="media-body">'
+        message+='<h5 class="media-heading">'+data.roomUsername+'</h5>\n'
+        //message+=' <small class="pull-right time"><i class="fa fa-clock-o"></i>'+data.updated_at+' </small>\n'
+        message+=' <small class="col-lg-10">'+data.message+'</small>\n'
+        message+='</div><br>'
+        var $groupMessageArea=$('#'+data.roomname);
+        $groupMessageArea.append(message);
+
+
+
+
+    }
 
     function createGroupBoxOldsAndNew(data){
 

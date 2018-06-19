@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 
 var GroupMessageSchema = new mongoose.Schema({
     roomname: String,
-    username: String,
+    roomUsername: String,
     message: String,
     updated_at: { type: Date, default: Date.now },
 });
