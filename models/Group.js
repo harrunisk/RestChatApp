@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 
 var GroupSchema = new mongoose.Schema({
     roomname: String,
-    username: String,
+    GroupCreaterUsername: String,
     updated_at: { type: Date, default: Date.now },
 });
 

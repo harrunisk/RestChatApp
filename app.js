@@ -44,6 +44,7 @@ server.listen(3003);
 
 
 var PublicMessage = require('./models/Message.js');
+var Group= require('./models/Group.js');
 
 
 
@@ -62,43 +63,28 @@ io.sockets.on('connection',function (socket) {
 
 
 
-
-
-
     //sonradan giren kullanıcılara gösterilecek mesajların limit sayısı
     var query=PublicMessage.find({});
 
-
-    //ascending====   created
+    //ascending ==== created
+    //load old public messages
     query.sort('-updated_at').limit(8).exec(function (err,docs) {
 
         if(err) throw err;
         //console.log('Sending old msgs!');
-
-
-
-
-        //eski mesajları gönderen yer
+        //eski genel  mesajları gönderen yer
         socket.emit('load old msgs',docs);
+
+        //önceden oluşturulan grupları kullanıcılarda oluşturmak için
+
+
 
 
 
 
 
     });
-
-
-
-
-
-
     socket.on('new user', function (data,callback) {
-
-
-
-
-
-
 
         //nikin başka kullanıcı tarafından alınıp alınmadığımı kontrol ediyor
         if (data in onlineUsers){
@@ -112,6 +98,7 @@ io.sockets.on('connection',function (socket) {
             users[socket.username]=socket;
             onlineUsers[socket.username]=socket;
             updateNickNames();
+            loadOldGroups();
 
         }
 
@@ -123,8 +110,6 @@ io.sockets.on('connection',function (socket) {
         io.sockets.emit('new message', {message: data.message, username: data.username,updated_at:data.updated_at});
 
     });
-
-
     //(eventname, callback)
     socket.on('send message',function (data,callback) {
 
@@ -249,51 +234,37 @@ io.sockets.on('connection',function (socket) {
 
     })
     socket.on('create group',function (data,callback) {
-        var ind = data.indexOf(' ');
-        var ind2 = data.indexOf('  ');
-
-        //burada grup adı+eklenen+ "adasad" gelecek onları parse edeceğiz
-        if (ind>-1){
 
 
+        var RoomName=data;
+        //boşluğun başladığı yerden sonuna kadar olan yer
+        var GroupCreaterUsername =socket.username;
 
-            var ind=data.indexOf(' ');
-            var GroupName=data.substring(0,ind);
-            //boşluğun başladığı yerden sonuna kadar olan yer
-            var GroupSubscriber =data.substring(ind+1,ind2);
-            var Msg=GroupSubscriber +" "+socket.username + " tarafından eklendi ";
+        Group.findOne({roomname: RoomName,GroupCreaterUsername: GroupCreaterUsername},function (err,result) {
+            if (err) throw err;
+            if(result){
 
-
-            var newGroupMember = new GroupMessage({groupName: GroupName, groupSubscriber: GroupSubscriber, groupMsg: Msg});
-            newGroupMember.save(function (err) {
-
-                if (err) throw err;
-                io.sockets.emit('new group message', {groupName: GroupName, groupSubscriber: GroupSubscriber, groupMsg: Msg});
+                    io.sockets.emit('group name already taken');
 
 
+            }
 
-            })
+            else{
 
-
-
-
-        }
-
-        else  if (ind == -1) {
-
-
-            var newGroup = new GroupMessage({groupName: data, groupSubscriber: socket.username, groupMsg: ""});
-
+            var newGroup=new Group({roomname:RoomName,GroupCreaterUsername:GroupCreaterUsername});
             newGroup.save(function (err) {
-                if (err) throw err;
-                io.sockets.emit('new group message', {groupName: data, groupSubscriber: socket.username, groupMsg: ""});
+            if (err) throw err;
 
-            })
-        }
+            socket.emit('new group created', {roomname: RoomName, GroupCreaterUsername: GroupCreaterUsername});
 
+
+            })}
+
+
+
+        });
 
     });
-
 
     function updateNickNames(){
         io.sockets.emit('usernames',Object.keys(onlineUsers));
@@ -314,22 +285,8 @@ io.sockets.on('connection',function (socket) {
             var chatGroup=GroupMessage.find({});
             chatGroup.sort('-updated_at').exec(function(err,docs2){
 
-
-
-
-
                 if (err) throw err;
                 for(var i=0;i<docs2.length;i++){
-
-
-
-
-
-
-
-
-
-
 
                     io.sockets.emit('new group message', {groupName:docs2[i].groupName,groupSubscriber:docs2[i].groupSubscriber,groupMsg:docs2[i].groupMsg});
 
@@ -346,9 +303,26 @@ io.sockets.on('connection',function (socket) {
 
 
     }
+    function loadOldGroups() {
+        Group.find({GroupCreaterUsername: socket.username},function (err,groups) {
+            if (err) throw err;
+            if(groups.length!=0){
+
+                console.log("groups");
+                socket.emit("load old groups",groups);
+            }
+
+            else  if (groups.length==0){
+                console.log("groups none");
+
+            }
+
+
+        });
 
 
 
+    }
 
 
     socket.on('disconnect',function (data) {
@@ -361,6 +335,8 @@ io.sockets.on('connection',function (socket) {
         //nicknames.splice(nicknames.indexOf(socket.username),1);
         updateNickNames();
     })
+
+
 
 
 

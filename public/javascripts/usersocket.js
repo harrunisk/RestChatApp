@@ -1,15 +1,7 @@
 
 jQuery(function($) {
     var socket = io.connect();
-    var $nickForm= $('#loginNew');
     var $nickError=$('#nickError');
-    var $nickBox=$('#user');
-    var $users=$('#users');
-    var $messageForm=$('#send-message');
-    var $messageBox=$('#message');
-    var $chat=$('#chat');
-    var $login=$('#login');
-    var $messageBox=$('#messageBox');
     var $onlineUsers=$('#onlineUsers');
     var $chatNew=$('#chatNew');
     var $sendMessageButton=$('#sendMessageButton');
@@ -31,10 +23,32 @@ jQuery(function($) {
     var i=0;
 
 
+    username=$jadeUserName.text();
+    socket.emit('new user',$jadeUserName.text(),function (data) {
+        var deneme=0;
+
+        if (data){
+            $('#messageBox').show();
+
+            $('#nickWrap').hide();
+            // $('#contentWrap').show();
+
+        }
+        else
+        {
+            $nickError.html("That username is already taken ! Try again.");
+
+
+        }
+
+
+    });
+
+
+
     $createGroup.click(function (e) {
         e.preventDefault();
 
-        alert("Grupqweqweqew");
 
         socket.emit('create group',$groupName.val(),function(data){
             //üstteki satıra functionu callbak için ekledik
@@ -42,7 +56,6 @@ jQuery(function($) {
 
         });
         $groupName.val('');
-        alert("Grup başarı ile kuruldu");
 
 
 
@@ -55,7 +68,7 @@ jQuery(function($) {
 
         var message=groupName+" "+userForGroup+"  "+groupMsg;
         //actually not group it is for new user but I am using create group
-        socket.emit('create group',message,function (data) {
+        socket.emit('send group message',message,function (data) {
 
         });
         $groupNameForUser.val('');
@@ -65,124 +78,68 @@ jQuery(function($) {
 
 
 
-    })
+    });
+
+    //grup ismi zaten alınmışsa client tarafında çalışacak fonksiyon
+    socket.on('group name already taken',function () {
 
 
+    console.log("gurup ismi alınmış");
 
 
-
-    //mesaj bize gelince yapılacaklar
-    socket.on('new group message',function (data) {
+});
+    socket.on('new group created',function(data){
         var html='';
 
 
-        var ind=data.groupMsg.indexOf(' ');
 
-        if(username==data.groupMsg.substr(0,ind)){
-
-            html+='<div id='+i+'>\n'
-            html+='<br>'
-            html+='<label id="'+i+'groupName" class="text-center center-block" style="text-align: center" for="usr"><strong> '+data.groupName+'</strong></label>\n'
-            html+=' <div id=\''+data.groupName+'\'  class="msg-wrap"> </div>\n'
-            html+='<div class="send-wrap ">\n'
-            html+='<textarea id="'+i+'groupSendTextArea"class="form-control send-message groupArea" rows="3" placeholder="Write a reply..."></textarea>\n'
-            html+='</div>'
-            html+='<div class="btn-panel">\n'
-            html+='<button  id="'+i+'groupSendMessageButton" type="button" class="btn btn-primary  center-block sendGroupMessage">Mesaj yolla</button>\n'
-            html+='</div>'
-            html+='<div class="row"></div>'
-            html+='</div>'
-            i++
+        html+='<div id='+i+'>\n'
+        html+='<br>'
+        html+='<label id="'+i+'groupName" class="text-center center-block" style="text-align: center" for="usr"><strong> '+data.roomname+'</strong></label>\n'
+        html+=' <div id=\''+data.roomname+'\'  class="msg-wrap"> </div>\n'
+        html+='<div class="send-wrap ">\n'
+        html+='<textarea id="'+i+'groupSendTextArea"class="form-control send-message groupArea" rows="3" placeholder="Write a reply..."></textarea>\n'
+        html+='</div>'
+        html+='<div class="btn-panel">\n'
+        html+='<button  id="'+i+'groupSendMessageButton" type="button" class="btn btn-primary  center-block sendGroupMessage">Mesaj yolla</button>\n'
+        html+='</div>'
+        html+='<div class="row"></div>'
+        html+='</div>'
+        i++
 
 
 
 
-            $groupPlace.append(html);
-            html=''
-
-
-
-
-        }
+        $groupPlace.append(html);
 
 
 
 
 
 
-        if(data.groupMsg=="" && data.groupSubscriber==username){
-            html+='<div id='+i+'>\n'
-            html+='<br>'
-            html+='<label id="'+i+'groupName" class="text-center center-block" style="text-align: center" for="usr"><strong> '+data.groupName+'</strong></label>\n'
-            html+=' <div id=\''+data.groupName+'\'  class="msg-wrap"> </div>\n'
-            html+='<div class="send-wrap ">\n'
-            html+='<textarea id="'+i+'groupSendTextArea"class="form-control send-message groupArea" rows="3" placeholder="Write a reply..."></textarea>\n'
-            html+='</div>'
-            html+='<div class="btn-panel">\n'
-            html+='<button  id="'+i+'groupSendMessageButton" type="button" class="btn btn-primary  center-block sendGroupMessage">Mesaj yolla</button>\n'
-            html+='</div>'
-            html+='<div class="row"></div>'
-            html+='</div>'
-            i++
 
 
 
 
-            $groupPlace.append(html);
 
+    })
+
+
+    socket.on('load old groups',function(data){
+
+
+
+        for(var i=data.length-1; i>=0 ; i--){
+            createGroupBoxOldsAndNew(data[i]);
 
         }
-        else{
-
-            //burası mesaj gösterme kısmı oldu
-
-            var message='';
-            message+='<div class="media msg">'
-            message+='<a class="pull-left" href="#">'
-            message+='</a>'
-            message+='<div class="media-body">'
-            message+='<h5 class="media-heading">'+data.groupSubscriber+'</h5>\n'
-            //message+=' <small class="pull-right time"><i class="fa fa-clock-o"></i>'+data.updated_at+' </small>\n'
-            message+=' <small class="col-lg-10">'+data.groupMsg+'</small>\n'
-            message+='</div><br>'
-            var $groupMessageArea=$('#'+data.groupName);
-            $groupMessageArea.append(message);
 
 
 
 
-        }
+
 
     });
-
-
-
-
-
-
-        username=$jadeUserName.text();
-        socket.emit('new user',$jadeUserName.text(),function (data) {
-            var deneme=0;
-
-            if (data){
-                $('#messageBox').show();
-
-                $('#nickWrap').hide();
-                // $('#contentWrap').show();
-
-            }
-            else
-            {
-                $nickError.html("That username is already taken ! Try again.");
-
-
-            }
-
-
-        });
-
-
-
 
 
     socket.on('usernames',function (data) {
@@ -226,13 +183,8 @@ jQuery(function($) {
 
     });
 
-
-
-
     //tüm resimlere tıklanınca
     //  $('body').on('click','img',function(){ $( "#menu" ).menu());
-
-
 
 
     $sendMessageButton.click(function (e) {
@@ -250,11 +202,6 @@ jQuery(function($) {
         $messageArea.val('');
 
     });
-
-
-
-
-
     $('#groupPlace').on('click','.sendGroupMessage',function(e){
 
         e.preventDefault();
@@ -302,12 +249,6 @@ jQuery(function($) {
 
 
     });
-
-
-
-
-
-
     socket.on('load old msgs',function (docs) {
         for(var i=docs.length-1; i>=0 ; i--){
             displayMsg(docs[i]);
@@ -315,19 +256,38 @@ jQuery(function($) {
         }
 
     });
-
     //mesaj bize gelince yapılacaklar
     socket.on('new message',function (data) {
         displayMsg(data);
 
     });
 
+    function createGroupBoxOldsAndNew(data){
+
+            var html='';
+            html+='<div id='+i+'>\n'
+            html+='<br>'
+            html+='<label id="'+i+'groupName" class="text-center center-block" style="text-align: center" for="usr"><strong> '+data.roomname+'</strong></label>\n'
+            html+=' <div id=\''+data.roomname+'\'  class="msg-wrap"> </div>\n'
+            html+='<div class="send-wrap ">\n'
+            html+='<textarea id="'+i+'groupSendTextArea"class="form-control send-message groupArea" rows="3" placeholder="Write a reply..."></textarea>\n'
+            html+='</div>'
+            html+='<div class="btn-panel">\n'
+            html+='<button  id="'+i+'groupSendMessageButton" type="button" class="btn btn-primary  center-block sendGroupMessage">Mesaj yolla</button>\n'
+            html+='</div>'
+            html+='<div class="row"></div>'
+            html+='</div>'
+            i++
 
 
 
 
+            $groupPlace.append(html);
 
 
+
+
+    }
     function displayMsg(data){
         if(data.username==username) {
             var message = '';
@@ -363,7 +323,6 @@ jQuery(function($) {
         }
 
     }
-
     socket.on('whisper',function(data){
         $chatNew.append('<span class="whisper"><b>'+data.username +':</b>'+data.message+"</span><br/>");
 
